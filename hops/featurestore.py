@@ -125,6 +125,7 @@ from hops.featurestore_impl.util import fs_utils
 
 
 update_cache_default = True
+job_conf_attrs = ('am_cors', 'am_memory','executor_cores', 'executor_memory', 'max_executors')
 
 
 def project_featurestore():
@@ -1297,10 +1298,11 @@ def import_featuregroup_s3(storage_connector, featuregroup, path=None, primary_k
             "DeprecationWarning: Primary key of type str is deprecated. With the introduction of composite primary keys"
             " this method expects a list of strings to define the primary key.")
         primary_key = [primary_key]
-    arguments = locals()
+    arguments = {x: locals()[x] for x in locals() if x not in job_conf_attrs}
     arguments['type'] = "S3"
-    core._do_import_featuregroup(json.dumps(arguments))
-    job.launch_job(featuregroup)
+    job_conf = {x: locals()[x] for x in locals() if x in job_conf_attrs}
+    core._do_import_featuregroup(json.dumps(job_conf))
+    job.launch_job(featuregroup, arguments)
 
 def import_featuregroup_redshift(storage_connector, query, featuregroup, primary_key=[], description="",
                                  featurestore=None, featuregroup_version=1, jobs=[], descriptive_statistics=True,
@@ -1355,7 +1357,7 @@ def import_featuregroup_redshift(storage_connector, query, featuregroup, primary
         :am_memory: ammount of memory for the import job's application master
         :executor_cores: number of cores for the import job's executors
         :executor_memory: ammount of memory for the import job's executors
-        :max_executors: max number of executors to allocate to the spark dinamic app.
+        :max_executors: max number of executors to allocate to the spark dynamic app.
 
 
     Returns:
@@ -1367,10 +1369,11 @@ def import_featuregroup_redshift(storage_connector, query, featuregroup, primary
             "DeprecationWarning: Primary key of type str is deprecated. With the introduction of composite primary keys"
             " this method expects a list of strings to define the primary key.")
         primary_key = [primary_key]
-    arguments = locals()
+    arguments = {x: locals()[x] for x in locals() if x not in job_conf_attrs}
     arguments['type'] = "REDSHIFT"
-    core._do_import_featuregroup(json.dumps(arguments))
-    job.launch_job(featuregroup)
+    job_conf = arguments = {x: locals()[x] for x in locals() if x in job_conf_attrs}
+    core._do_import_featuregroup(json.dumps(job_conf))
+    job.launch_job(featuregroup, arguments)
 
 
 def connect(host, project_name, port = 443, region_name = constants.AWS.DEFAULT_REGION,
@@ -1505,9 +1508,10 @@ def create_training_dataset(training_dataset, features=None, sql_query=None, fea
         :executor_memory: Memory in MB assigned to each of the executors of the job. Defaults to 4096.
         :max_executors: Maximum number of executors assigned to the job.
     """
-    job_conf = locals()
+    arguments = {x: locals()[x] for x in locals() if x not in job_conf_attrs}
     # treat featuregroups_version_dict as string
-    job_conf['featuregroups_version_dict'] = json.dumps(job_conf['featuregroups_version_dict'])
+    arguments['featuregroups_version_dict'] = json.dumps(arguments['featuregroups_version_dict'])
+    job_conf = {x: locals()[x] for x in locals() if x in job_conf_attrs}
     core._do_trainingdataset_create(json.dumps(job_conf))
-    job.launch_job(training_dataset)
+    job.launch_job(training_dataset, arguments)
     print('Training Dataset job successfully started')
